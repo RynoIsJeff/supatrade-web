@@ -1,0 +1,121 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+/**
+ * ========== Enums ==========
+ */
+enum Brand {
+  SPAR
+  SAVEMOR
+  ENGEN
+  STEERS
+  DEBONAIRS
+  BUILD_IT
+}
+
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  TEMPORARY
+  CASUAL
+  CONTRACT
+}
+
+enum JobStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+}
+
+enum AppStatus {
+  NEW
+  SHORTLISTED
+  INTERVIEWING
+  OFFER
+  HIRED
+  REJECTED
+}
+
+enum Role {
+  SUPER_ADMIN
+  HR_ADMIN
+  STORE_MANAGER
+}
+
+/**
+ * ========== Models ==========
+ */
+model User {
+  id          String   @id @default(uuid())
+  email       String   @unique
+  name        String?
+  role        Role     @default(HR_ADMIN)
+  supabaseUid String? // Supabase auth.users.id (we’ll wire later)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relation to jobs created by this user
+  jobsCreated Job[] @relation("JobsCreatedBy")
+}
+
+model Store {
+  id        String   @id @default(uuid())
+  brand     Brand
+  name      String   @unique
+  town      String
+  address   String
+  phone     String?
+  latitude  Float?
+  longitude Float?
+  hours     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  jobs Job[]
+}
+
+model Job {
+  id          String    @id @default(uuid())
+  slug        String    @unique
+  title       String
+  brand       Brand
+  type        JobType   @default(FULL_TIME)
+  status      JobStatus @default(DRAFT)
+  description String
+  closingDate DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Optional link to a specific store
+  storeId String?
+  store   Store?  @relation(fields: [storeId], references: [id])
+
+  // Creator (User)
+  createdById String
+  createdBy   User   @relation("JobsCreatedBy", fields: [createdById], references: [id])
+
+  applications Application[]
+}
+
+model Application {
+  id    String  @id @default(uuid())
+  jobId String?
+  job   Job?    @relation(fields: [jobId], references: [id]) // null = General Apply
+
+  firstName   String
+  lastName    String
+  email       String
+  phone       String?
+  cvUrl       String?
+  coverLetter String?
+  status      AppStatus @default(NEW)
+  createdAt   DateTime  @default(now())
+}

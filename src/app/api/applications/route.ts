@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server"
 import { PrismaClient } from "@prisma/client"
-const prisma = new PrismaClient()
+import { prisma } from "@/lib/prisma"
 
 export async function POST(req: NextRequest) {
   const form = await req.formData()

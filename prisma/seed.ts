@@ -3,7 +3,7 @@ import { PrismaClient, Brand, JobType, JobStatus, Role } from "@prisma/client"
 import fs from "node:fs"
 import path from "node:path"
 
-const prisma = new PrismaClient()
+import { prisma } from "@/lib/prisma"
 
 async function seedStores() {
   const csv = path.join(process.cwd(), "data", "stores.csv")

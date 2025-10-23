@@ -1,3 +1,4 @@
+// src/app/(admin)/admin/jobs/new/page.tsx
 "use client"
 
 import { useEffect, useState } from "react"
@@ -9,15 +10,17 @@ export default function NewJobPage() {
   const r = useRouter()
   const [stores, setStores] = useState<Store[]>([])
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // simple store list for select
-    fetch("/api/stores").then(r => r.json()).then(d => setStores(d.stores ?? []))
+    fetch("/api/stores").then(res => res.json()).then(d => setStores(d.stores ?? []))
   }, [])
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setSaving(true)
+    setError(null)
+
     const fd = new FormData(e.currentTarget)
     const payload = Object.fromEntries(fd.entries())
 
@@ -32,11 +35,18 @@ export default function NewJobPage() {
         description: payload.description,
         storeId: (payload.storeId as string) || null,
         closingDate: (payload.closingDate as string) || null,
-        createdById: "placeholder", // server will use cookie user soon
       }),
+      // same-origin => cookies included by default
     })
-    setSaving(false)
-    if (res.ok) r.push("/admin/jobs")
+
+    if (!res.ok) {
+      const msg = await res.text().catch(() => "")
+      setError(msg || `Failed to create job (HTTP ${res.status})`)
+      setSaving(false)
+      return
+    }
+
+    r.push("/admin/jobs")
   }
 
   return (
@@ -46,33 +56,23 @@ export default function NewJobPage() {
         <input name="title" placeholder="Title" className="rounded border p-2" required />
         <select name="brand" className="rounded border p-2" required>
           <option value="">Brand…</option>
-          <option>BUILD_IT</option>
-          <option>SPAR</option>
-          <option>SAVEMOR</option>
-          <option>ENGEN</option>
-          <option>STEERS</option>
-          <option>DEBONAIRS</option>
+          <option>BUILD_IT</option><option>SPAR</option><option>SAVEMOR</option>
+          <option>ENGEN</option><option>STEERS</option><option>DEBONAIRS</option>
         </select>
         <select name="type" className="rounded border p-2" required>
-          <option>FULL_TIME</option>
-          <option>PART_TIME</option>
-          <option>TEMPORARY</option>
-          <option>CASUAL</option>
-          <option>CONTRACT</option>
+          <option>FULL_TIME</option><option>PART_TIME</option><option>TEMPORARY</option>
+          <option>CASUAL</option><option>CONTRACT</option>
         </select>
         <select name="status" className="rounded border p-2" required defaultValue="PUBLISHED">
-          <option>DRAFT</option>
-          <option>PUBLISHED</option>
-          <option>CLOSED</option>
+          <option>DRAFT</option><option>PUBLISHED</option><option>CLOSED</option>
         </select>
         <select name="storeId" className="rounded border p-2">
           <option value="">(No specific store)</option>
-          {stores.map(s => (
-            <option key={s.id} value={s.id}>{s.name} — {s.town}</option>
-          ))}
+          {stores.map(s => <option key={s.id} value={s.id}>{s.name} — {s.town}</option>)}
         </select>
         <input name="closingDate" type="date" className="rounded border p-2" />
         <textarea name="description" placeholder="HTML description…" rows={6} className="rounded border p-2" />
+        {error && <p className="text-red-600 text-sm">{error}</p>}
         <button disabled={saving} className="rounded bg-primary px-4 py-2 text-white w-fit">
           {saving ? "Saving…" : "Create job"}
         </button>

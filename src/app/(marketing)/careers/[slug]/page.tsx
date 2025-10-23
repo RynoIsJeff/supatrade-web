@@ -1,22 +1,25 @@
 // src/app/(marketing)/careers/[slug]/page.tsx
-// 👇 ensure fresh, dynamic SSR (no stale static 404)
-export const dynamic = "force-dynamic"
-export const revalidate = 0
-
 import { notFound } from "next/navigation"
 import { prisma } from "@/lib/prisma"
 
+// ensure dynamic (so new jobs work immediately)
+export const dynamic = "force-dynamic"
+export const revalidate = 0
 
-
-export default async function JobDetail({ params }: { params: { slug?: string } }) {
-  const slug = params?.slug ? decodeURIComponent(params.slug) : ""
+export default async function JobDetail({
+  params,
+}: {
+  // 👇 Next 16: params is a Promise
+  params: Promise<{ slug: string }>
+}) {
+  const { slug: raw } = await params
+  const slug = decodeURIComponent(raw || "")
   if (!slug) notFound()
 
   const job = await prisma.job.findUnique({
     where: { slug },
     include: { store: true },
   })
-
   if (!job || job.status !== "PUBLISHED") notFound()
 
   return (
@@ -34,7 +37,6 @@ export default async function JobDetail({ params }: { params: { slug?: string } 
         className="prose prose-slate mt-6"
         dangerouslySetInnerHTML={{ __html: job.description }}
       />
-      {/* apply form… */}
     </div>
   )
 }

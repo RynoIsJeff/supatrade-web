@@ -1,30 +1,20 @@
-// src/app/(marketing)/careers/[slug]/page.tsx
-import { PrismaClient } from "@prisma/client"
 import { notFound } from "next/navigation"
-
 import { prisma } from "@/lib/prisma"
 
-export default async function JobDetail({
-  params,
-}: {
-  params: { slug?: string }
-}) {
+// 👇 ensure fresh, dynamic SSR (no stale static 404)
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
+export default async function JobDetail({ params }: { params: { slug?: string } }) {
   const slug = params?.slug ? decodeURIComponent(params.slug) : ""
   if (!slug) notFound()
 
-  const job =
-    (await prisma.job.findUnique({
-      where: { slug },
-      include: { store: true },
-    })) ??
-    (await prisma.job.findFirst({
-      where: { slug },
-      include: { store: true },
-    }))
+  const job = await prisma.job.findUnique({
+    where: { slug },
+    include: { store: true },
+  })
 
-  if (!job || job.status !== "PUBLISHED") {
-    notFound()
-  }
+  if (!job || job.status !== "PUBLISHED") notFound()
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-16">
@@ -41,7 +31,7 @@ export default async function JobDetail({
         className="prose prose-slate mt-6"
         dangerouslySetInnerHTML={{ __html: job.description }}
       />
-      {/* apply form... */}
+      {/* apply form… */}
     </div>
   )
 }

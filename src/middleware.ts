@@ -1,21 +1,25 @@
 import { NextResponse, type NextRequest } from "next/server"
 
 export function middleware(req: NextRequest) {
-  const url = new URL(req.nextUrl)
-  const isAdminArea = url.pathname.startsWith("/admin")
-  if (!isAdminArea) return NextResponse.next()
+  const { pathname } = req.nextUrl
+
+  // Only guard /admin but allow API endpoints through
+  if (!pathname.startsWith("/admin")) return NextResponse.next()
+  if (pathname.startsWith("/admin/api")) return NextResponse.next() // <-- allow login/logout
 
   const hasSession = Boolean(req.cookies.get("sb-access-token")?.value)
-  const isLogin = url.pathname.startsWith("/admin/login")
-  if (!hasSession && !isLogin) {
-    url.pathname = "/admin/login"
+  const isLoginPage = pathname.startsWith("/admin/login")
+
+  if (!hasSession && !isLoginPage) {
+    const url = new URL("/admin/login", req.url)
     return NextResponse.redirect(url)
   }
-  if (hasSession && isLogin) {
-    url.pathname = "/admin"
+  if (hasSession && isLoginPage) {
+    const url = new URL("/admin", req.url)
     return NextResponse.redirect(url)
   }
   return NextResponse.next()
 }
 
+// Keep this simple matcher
 export const config = { matcher: ["/admin/:path*"] }

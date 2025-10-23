@@ -1,9 +1,12 @@
-import { notFound } from "next/navigation"
-import { prisma } from "@/lib/prisma"
-
+// src/app/(marketing)/careers/[slug]/page.tsx
 // 👇 ensure fresh, dynamic SSR (no stale static 404)
 export const dynamic = "force-dynamic"
 export const revalidate = 0
+
+import { notFound } from "next/navigation"
+import { prisma } from "@/lib/prisma"
+
+
 
 export default async function JobDetail({ params }: { params: { slug?: string } }) {
   const slug = params?.slug ? decodeURIComponent(params.slug) : ""

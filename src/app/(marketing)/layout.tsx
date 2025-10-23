@@ -1,16 +1,14 @@
 // src/app/(marketing)/layout.tsx
-import "../globals.css"
-import type { Metadata } from "next"
+import type { ReactNode } from "react"
 
-export const metadata: Metadata = {
-  title: "SupaTrade Group",
-  description: "Corporate website for SupaTrade Group – powered by UMS.",
+export const metadata = {
+  title: "SupaTrade — Careers & Stores",
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function MarketingLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className="scroll-smooth" suppressHydrationWarning>
-      <body suppressHydrationWarning>{children}</body>
-    </html>
+    <div className="min-h-screen">
+      {children}
+    </div>
   )
 }

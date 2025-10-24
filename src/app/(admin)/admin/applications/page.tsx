@@ -23,6 +23,12 @@ const fetcher = async (u: string) => {
   return r.json()
 }
 
+const [cvLink, setCvLink] = useState<string | null>(null)
+async function openCv(path: string) {
+  const r = await fetch(`/api/admin/cv-url/${encodeURIComponent(path)}`)
+  if (r.ok) { const { url } = await r.json(); setCvLink(url); window.open(url, "_blank") }
+}
+
 export default function ApplicationsAdmin() {
   const [status, setStatus] = useState("")
   const [brand, setBrand] = useState("")
@@ -134,6 +140,13 @@ export default function ApplicationsAdmin() {
           {isValidating ? "Refreshing…" : "Refresh"}
         </button>
       </div>
+      <a
+        className="border rounded px-3 py-2"
+        href={`/api/admin/applications/export?${query}`}
+      >
+        Export CSV
+      </a>
+
 
       {/* Table */}
       <div className="overflow-auto rounded border">
@@ -159,11 +172,11 @@ export default function ApplicationsAdmin() {
                     {a.email}
                     {a.phone ? ` · ${a.phone}` : ""}
                   </div>
-                  {a.cvUrl && (
-                    <a className="text-primary underline" href={a.cvUrl} target="_blank" rel="noreferrer">
-                      View CV
-                    </a>
-                  )}
+                    {a.cvUrl && (
+                      <button className="text-primary underline" onClick={() => openCv(a.cvUrl)}>
+                        View CV
+                      </button>
+                    )}
                   {a.coverLetter && (
                     <details className="mt-1 text-xs">
                       <summary className="cursor-pointer text-primary underline">View Cover Letter</summary>

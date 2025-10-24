@@ -19,3 +19,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     </div>
   )
 }
+
+export const metadata = { robots: { index: false, follow: false } }
+

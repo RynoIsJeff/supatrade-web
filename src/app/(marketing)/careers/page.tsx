@@ -1,4 +1,5 @@
 import Link from "next/link"
+import ApplicationForm from "@/components/ApplicationForm"
 
 async function fetchJobs() {
   const res = await fetch(`${process.env.SITE_URL || ""}/api/jobs`, { cache: "no-store" })
@@ -44,15 +45,10 @@ export default async function CareersPage() {
 
       <hr className="my-10" />
       <h2 id="general-apply" className="text-2xl font-semibold">General Application</h2>
-      <form action="/api/applications" method="post" className="mt-4 grid gap-3">
-        <input type="hidden" name="jobId" value="" />
-        <input name="firstName" placeholder="First name" className="rounded border p-2" required />
-        <input name="lastName" placeholder="Last name" className="rounded border p-2" required />
-        <input name="email" type="email" placeholder="Email" className="rounded border p-2" required />
-        <input name="phone" placeholder="Phone (optional)" className="rounded border p-2" />
-        <textarea name="coverLetter" placeholder="Cover letter (optional)" className="rounded border p-2" rows={4} />
-        <button className="rounded bg-primary px-4 py-2 text-white w-fit">Submit</button>
-      </form>
+      <p className="mt-2 text-slate-600">Submit your CV and details for future opportunities.</p>
+        <div className="mt-4 max-w-2xl">
+          <Application soonForm />
+        </div>
     </div>
   )
 }

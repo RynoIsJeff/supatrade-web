@@ -21,6 +21,14 @@ export async function POST(req: NextRequest) {
   const coverLetter = form.get("coverLetter")?.toString() || ""
   const jobId = form.get("jobId")?.toString() || null
   const cv = form.get("cv") as File | null
+    if (cv) {
+      const maxBytes = 5 * 1024 * 1024; // 5 MB
+      if (cv.size > maxBytes) return new Response("File too large (max 5MB)", { status: 400 });
+      const okTypes = ["application/pdf", "application/msword",
+                      "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
+      if (!okTypes.includes(cv.type)) return new Response("Only PDF/DOC/DOCX allowed", { status: 400 });
+    }
+
 
   let cvUrl: string | null = null
   if (cv) {

@@ -6,34 +6,36 @@ export const revalidate = 0
 import { prisma } from "@/lib/prisma"
 import { getAuthedAdmin } from "@/lib/auth"
 import { AppStatus } from "@prisma/client"
+import type { NextRequest } from "next/server"
 
 function isValidStatus(v: unknown): v is AppStatus {
   return typeof v === "string" && (v in AppStatus)
 }
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(
+  req: NextRequest,
+  ctx: { params: Promise<{ id: string }> } // 👈 Next 16: params is a Promise
+) {
   try {
     const admin = await getAuthedAdmin()
     if (!admin) return new Response("Unauthorized", { status: 401 })
 
+    const { id } = await ctx.params            // 👈 await it
+    if (!id) return new Response("Missing id", { status: 400 })
+
     const body = await req.json().catch(() => ({}))
     const status = body?.status
-
-    if (!isValidStatus(status)) {
-      return new Response("Invalid status", { status: 400 })
-    }
+    if (!isValidStatus(status)) return new Response("Invalid status", { status: 400 })
 
     const app = await prisma.application.update({
-      where: { id: params.id },
-      data: { status }, // typed as AppStatus by the guard above
+      where: { id },
+      data: { status },
       select: { id: true, status: true },
     })
 
     return Response.json({ application: app })
   } catch (e: any) {
     console.error("PATCH /api/admin/applications/[id] error:", e)
-    // surface Prisma codes like P2025 (record not found), etc.
-    const msg = e?.code ? `${e.code}: ${e.message}` : (e?.message || "Server error")
-    return new Response(msg, { status: 500 })
+    return new Response(e?.message || "Server error", { status: 500 })
   }
 }

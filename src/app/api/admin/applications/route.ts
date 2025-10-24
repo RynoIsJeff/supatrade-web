@@ -1,3 +1,8 @@
+// src/app/api/admin/applications/route.ts
+export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
 import { prisma } from "@/lib/prisma"
 import { getAuthedAdmin } from "@/lib/auth"
 
@@ -10,20 +15,27 @@ export async function GET(req: Request) {
   const brand = url.searchParams.get("brand") || undefined
   const q = url.searchParams.get("q") || undefined
 
-  const apps = await prisma.application.findMany({
-    where: {
-      status: status as any || undefined,
-      job: brand ? { brand: brand as any } : undefined,
-      OR: q ? [
-        { firstName: { contains: q, mode: "insensitive" } },
-        { lastName:  { contains: q, mode: "insensitive" } },
-        { email:     { contains: q, mode: "insensitive" } },
-      ] : undefined,
-    },
-    include: {
-      job: { select: { id: true, title: true, brand: true, store: { select: { town: true } } } },
-    },
-    orderBy: { createdAt: "desc" },
-  })
-  return Response.json({ applications: apps })
+  try {
+    const apps = await prisma.application.findMany({
+      where: {
+        status: status as any || undefined,
+        job: brand ? { brand: brand as any } : undefined,
+        OR: q
+          ? [
+              { firstName: { contains: q, mode: "insensitive" } },
+              { lastName: { contains: q, mode: "insensitive" } },
+              { email: { contains: q, mode: "insensitive" } },
+            ]
+          : undefined,
+      },
+      include: {
+        job: { select: { id: true, title: true, brand: true, store: { select: { town: true } } } },
+      },
+      orderBy: { createdAt: "desc" },
+    })
+    return Response.json({ applications: apps })
+  } catch (e: any) {
+    console.error("GET /api/admin/applications failed:", e)
+    return new Response("Server error", { status: 500 })
+  }
 }

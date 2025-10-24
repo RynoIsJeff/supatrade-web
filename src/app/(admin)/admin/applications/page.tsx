@@ -10,16 +10,28 @@ type Row = {
   cvUrl?: string | null
   job?: { title: string; brand: string; store?: { town?: string | null } | null } | null
 }
-const fetcher = (u: string) => fetch(u).then(r => r.json())
+const fetcher = async (u: string) => {
+  const r = await fetch(u) // same-origin sends cookies
+  if (!r.ok) {
+    const txt = await r.text().catch(() => "")
+    throw new Error(`HTTP ${r.status} ${txt}`)
+  }
+  return r.json()
+}
 
 export default function ApplicationsAdmin() {
   const [status, setStatus] = useState<string>("")
   const [brand, setBrand] = useState<string>("")
   const [q, setQ] = useState<string>("")
   const query = new URLSearchParams({ ...(status && {status}), ...(brand && {brand}), ...(q && {q}) }).toString()
-  const { data, mutate } = useSWR<{ applications: Row[] }>(`/api/admin/applications?${query}`, fetcher)
+  const { data, error, mutate } = useSWR<{ applications: Row[] }>(`/api/admin/applications?${query}`, fetcher)
+
+  if (error) {
+    return <div className="text-red-600">Failed to load applications: {String(error.message || error)}</div>
+  }
   const apps = data?.applications ?? []
 
+  
   async function updateStatus(id: string, next: string) {
     await fetch(`/api/admin/applications/${id}`, {
       method: "PATCH",

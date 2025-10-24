@@ -24,10 +24,14 @@ const fetcher = async (u: string) => {
 }
 
 const [cvLink, setCvLink] = useState<string | null>(null)
-async function openCv(path: string) {
+async function openCv(path?: string | null) {
+  if (!path) return
   const r = await fetch(`/api/admin/cv-url/${encodeURIComponent(path)}`)
-  if (r.ok) { const { url } = await r.json(); setCvLink(url); window.open(url, "_blank") }
+  if (!r.ok) return alert("Could not open CV")
+  const { url } = await r.json()
+  window.open(url, "_blank", "noopener,noreferrer")
 }
+
 
 export default function ApplicationsAdmin() {
   const [status, setStatus] = useState("")

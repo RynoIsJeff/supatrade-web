@@ -3,6 +3,7 @@
 
 import useSWR from "swr"
 import { useMemo, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 
 type Row = {
   id: string
@@ -54,6 +55,14 @@ export default function ApplicationsAdmin() {
   const [brand, setBrand] = useState("")
   const [q, setQ] = useState("")
   const [cvLink, setCvLink] = useState<string | null>(null) // if you want to keep this
+  const router = useRouter()
+function setFilter(next: Partial<{status:string; brand:string; q:string}>) {
+  const sp = new URLSearchParams(window.location.search)
+  if (next.status !== undefined) (next.status ? sp.set("status", next.status) : sp.delete("status"))
+  if (next.brand  !== undefined) (next.brand  ? sp.set("brand",  next.brand)  : sp.delete("brand"))
+  if (next.q      !== undefined) (next.q      ? sp.set("q",      next.q)      : sp.delete("q"))
+  router.replace(`?${sp.toString()}`, { scroll: false })
+}
 
   const query = new URLSearchParams({ ...(status && { status }), ...(brand && { brand }), ...(q && { q }) }).toString()
 

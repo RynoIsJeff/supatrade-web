@@ -38,6 +38,21 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  const hits = new Map<string, { n: number; t: number }>()
+  function limited(ip: string, limit=5, windowMs=60_000) {
+  const now = Date.now()
+  const row = hits.get(ip) ?? { n: 0, t: now }
+  if (now - row.t > windowMs) { row.n = 0; row.t = now }
+  row.n += 1
+  hits.set(ip, row)
+  return row.n > limit
+}
+
+// at top of POST:
+const ip = (req.headers.get("x-forwarded-for") ?? req.headers.get("x-real-ip") ?? "local").split(",")[0].trim()
+if (limited(ip)) return new Response("Too many requests", { status: 429 })
+
+
   // Upload to Supabase (if provided)
   let cvUrl: string | null = null
   if (cv) {

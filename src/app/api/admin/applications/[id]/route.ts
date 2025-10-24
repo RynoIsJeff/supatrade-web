@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma"
 import { getAuthedAdmin } from "@/lib/auth"
 import { AppStatus } from "@prisma/client"
 import type { NextRequest } from "next/server"
+import { z } from "zod"
 
 function isValidStatus(v: unknown): v is AppStatus {
   return typeof v === "string" && (v in AppStatus)
@@ -32,6 +33,12 @@ export async function PATCH(
       data: { status },
       select: { id: true, status: true },
     })
+
+    const Body = z.object({
+      status: z.enum(["NEW","SHORTLISTED","INTERVIEWING","OFFER","HIRED","REJECTED"])
+    })
+    const parsed = Body.safeParse(await req.json())
+      if (!parsed.success) return new Response("Invalid status", { status: 400 })
 
     return Response.json({ application: app })
   } catch (e: any) {

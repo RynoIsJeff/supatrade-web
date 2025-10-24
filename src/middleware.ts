@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
 export function middleware(req: NextRequest) {
+  // Protect /admin routes
   if (req.nextUrl.pathname.startsWith("/admin")) {
     const token = req.cookies.get("sb-access-token")?.value
     if (!token) {
@@ -12,4 +13,6 @@ export function middleware(req: NextRequest) {
   return NextResponse.next()
 }
 
-export const config = { matcher: ["/admin/:path*"] }
+export const config = {
+  matcher: ["/admin/:path*"],
+}

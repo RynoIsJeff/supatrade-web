@@ -47,7 +47,7 @@ export default async function CareersPage() {
       <h2 id="general-apply" className="text-2xl font-semibold">General Application</h2>
       <p className="mt-2 text-slate-600">Submit your CV and details for future opportunities.</p>
         <div className="mt-4 max-w-2xl">
-          <Application soonForm />
+          <ApplicationForm />
         </div>
     </div>
   )

@@ -61,10 +61,9 @@ export default function ApplicationsAdmin() {
     })
 
     if (!res.ok) {
-      // rollback + show error
       mutate(prev, { revalidate: false })
       const msg = await res.text().catch(() => "")
-      alert(`Failed to update status: ${res.status} ${msg}`)
+      alert(`Failed to update status: ${res.status}${msg ? ` — ${msg}` : ""}`)
       return
     }
 

@@ -13,97 +13,85 @@ type Row = {
   coverLetter?: string | null
   status: "NEW" | "SHORTLISTED" | "INTERVIEWING" | "OFFER" | "HIRED" | "REJECTED"
   createdAt: string
-  cvUrl?: string | null
+  cvUrl?: string | null // this should store "cvs/....pdf" if using signed URLs
   job?: { title: string; brand: string; store?: { town?: string | null } | null } | null
 }
 
 const fetcher = async (u: string) => {
   const r = await fetch(u, { credentials: "same-origin", cache: "no-store" })
-  if (!r.ok) throw new Error(`HTTP ${r.status} ${await r.text()}`)
+  if (!r.ok) throw new Error(`HTTP ${r.status} ${await r.text().catch(() => "")}`)
   return r.json()
 }
 
-const [cvLink, setCvLink] = useState<string | null>(null)
-async function openCv(path?: string | null) {
-  if (!path) return
-  const r = await fetch(`/api/admin/cv-url/${encodeURIComponent(path)}`)
-  if (!r.ok) return alert("Could not open CV")
-  const { url } = await r.json()
-  window.open(url, "_blank", "noopener,noreferrer")
+function StatusButton({
+  current,
+  next,
+  onClick,
+}: {
+  current: Row["status"]
+  next: Row["status"]
+  onClick: () => void
+}) {
+  const active = current === next
+  const base = "px-2 py-1 rounded border text-xs font-medium transition-colors"
+  const idle = "border-slate-300 text-slate-600 hover:bg-slate-100"
+  const color =
+    next === "REJECTED"
+      ? "bg-red-100 text-red-700 border-red-300"
+      : next === "INTERVIEWING"
+      ? "bg-yellow-100 text-yellow-700 border-yellow-300"
+      : "bg-blue-100 text-blue-700 border-blue-300"
+  return (
+    <button type="button" onClick={onClick} className={`${base} ${active ? color : idle}`}>
+      {next.charAt(0) + next.slice(1).toLowerCase()}
+    </button>
+  )
 }
 
-
 export default function ApplicationsAdmin() {
+  // ✅ All hooks MUST be in here (inside component body)
   const [status, setStatus] = useState("")
   const [brand, setBrand] = useState("")
   const [q, setQ] = useState("")
+  const [cvLink, setCvLink] = useState<string | null>(null) // if you want to keep this
+
   const query = new URLSearchParams({ ...(status && { status }), ...(brand && { brand }), ...(q && { q }) }).toString()
 
   const { data, error, mutate, isValidating } = useSWR<{ applications: Row[] }>(
     `/api/admin/applications?${query}`,
     fetcher
   )
-
   const apps = data?.applications ?? []
 
-  // Hide rejected unless explicitly filtered
-  const rows = useMemo(
-    () => (status !== "REJECTED" ? apps.filter(a => a.status !== "REJECTED") : apps),
-    [apps, status]
-  )
+  const rows = useMemo(() => (status !== "REJECTED" ? apps.filter(a => a.status !== "REJECTED") : apps), [apps, status])
+
+  async function openCv(path?: string | null) {
+    if (!path) return
+    const r = await fetch(`/api/admin/cv-url/${encodeURIComponent(path)}`, { credentials: "same-origin" })
+    if (!r.ok) return alert("Could not open CV")
+    const { url } = await r.json()
+    setCvLink(url)
+    window.open(url, "_blank", "noopener,noreferrer")
+  }
 
   async function updateStatus(id: string, next: Row["status"]) {
     if (!data) return
     const prev = data
-    const optimistic = {
-      applications: data.applications.map(a => (a.id === id ? { ...a, status: next } : a)),
-    }
-
-    // Optimistic UI
+    const optimistic = { applications: data.applications.map(a => (a.id === id ? { ...a, status: next } : a)) }
     mutate(optimistic, { revalidate: false })
-
-    // Call API
     const res = await fetch(`/api/admin/applications/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       credentials: "same-origin",
       body: JSON.stringify({ status: next }),
     })
-
     if (!res.ok) {
       mutate(prev, { revalidate: false })
       const msg = await res.text().catch(() => "")
       alert(`Failed to update status: ${res.status}${msg ? ` — ${msg}` : ""}`)
       return
     }
-
-    // Revalidate to ensure backend state matches
     mutate()
-  }
-
-  function StatusButton({
-    current,
-    next,
-    onClick,
-  }: {
-    current: Row["status"]
-    next: Row["status"]
-    onClick: () => void
-  }) {
-    const active = current === next
-    const base = "px-2 py-1 rounded border text-xs font-medium transition-colors"
-    const idle = "border-slate-300 text-slate-600 hover:bg-slate-100"
-    const color =
-      next === "REJECTED"
-        ? "bg-red-100 text-red-700 border-red-300"
-        : next === "INTERVIEWING"
-        ? "bg-yellow-100 text-yellow-700 border-yellow-300"
-        : "bg-blue-100 text-blue-700 border-blue-300"
-    return (
-      <button type="button" onClick={onClick} className={`${base} ${active ? color : idle}`}>
-        {next.charAt(0) + next.slice(1).toLowerCase()}
-      </button>
-    )
   }
 
   if (error) {

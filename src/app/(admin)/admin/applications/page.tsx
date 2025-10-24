@@ -10,8 +10,9 @@ type Row = {
   cvUrl?: string | null
   job?: { title: string; brand: string; store?: { town?: string | null } | null } | null
 }
+// src/app/(admin)/admin/applications/page.tsx
 const fetcher = async (u: string) => {
-  const r = await fetch(u) // same-origin sends cookies
+  const r = await fetch(u, { credentials: "same-origin", cache: "no-store" })
   if (!r.ok) {
     const txt = await r.text().catch(() => "")
     throw new Error(`HTTP ${r.status} ${txt}`)

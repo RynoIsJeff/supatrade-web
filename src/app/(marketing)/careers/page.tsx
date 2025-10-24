@@ -17,6 +17,7 @@ export default async function CareersPage() {
         {jobs.length === 0 && <p className="text-slate-500">No open roles right now.</p>}
         {jobs.map((j) => (
           <Link key={j.id} href={`/careers/${j.slug}`} className="rounded-lg border p-4 hover:bg-slate-50">
+            <Link href={`/careers/${j.slug}`} className="text-primary underline">View & Apply</Link>
             <div className="text-sm text-slate-500">{j.brand} {j.store ? `• ${j.store.town}` : ""}</div>
             <div className="text-lg font-semibold">{j.title}</div>
             {j.closingDate && <div className="text-xs text-slate-500">Closes {new Date(j.closingDate).toLocaleDateString()}</div>}

@@ -106,16 +106,15 @@ model Job {
 }
 
 model Application {
-  id    String  @id @default(uuid())
-  jobId String?
-  job   Job?    @relation(fields: [jobId], references: [id]) // null = General Apply
-
+  id          String   @id @default(uuid())
   firstName   String
   lastName    String
   email       String
   phone       String?
-  cvUrl       String?
   coverLetter String?
+  cvUrl       String?      // 👈 new
   status      AppStatus @default(NEW)
-  createdAt   DateTime  @default(now())
+  jobId       String?
+  job         Job?       @relation(fields: [jobId], references: [id])
+  createdAt   DateTime @default(now())
 }

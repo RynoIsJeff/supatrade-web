@@ -3,7 +3,7 @@
 
 import useSWR from "swr"
 import { useMemo, useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 
 type Row = {
   id: string
@@ -113,7 +113,11 @@ function setFilter(next: Partial<{status:string; brand:string; q:string}>) {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2 mb-4">
-        <select className="border rounded p-2" value={status} onChange={e => setStatus(e.target.value)}>
+        <select
+          className="border rounded p-2"
+          value={status}
+          onChange={e => { setStatus(e.target.value); setFilter({ status: e.target.value }) }}
+        >          
           <option value="">All statuses</option>
           <option>NEW</option>
           <option>SHORTLISTED</option>
@@ -122,7 +126,11 @@ function setFilter(next: Partial<{status:string; brand:string; q:string}>) {
           <option>HIRED</option>
           <option>REJECTED</option>
         </select>
-        <select className="border rounded p-2" value={brand} onChange={e => setBrand(e.target.value)}>
+        <select
+          className="border rounded p-2"
+          value={brand}
+          onChange={e => { setBrand(e.target.value); setFilter({ brand: e.target.value }) }}
+        >
           <option value="">All brands</option>
           <option>BUILD_IT</option>
           <option>SPAR</option>
@@ -135,7 +143,7 @@ function setFilter(next: Partial<{status:string; brand:string; q:string}>) {
           className="border rounded p-2 flex-1 min-w-[180px]"
           placeholder="Search name/email"
           value={q}
-          onChange={e => setQ(e.target.value)}
+          onChange={e => { setQ(e.target.value); setFilter({ q: e.target.value }) }}
         />
         <button className="border rounded px-3" onClick={() => mutate()}>
           {isValidating ? "Refreshing…" : "Refresh"}

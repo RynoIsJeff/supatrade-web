@@ -1,7 +1,8 @@
+// src/app/(admin)/admin/applications/page.tsx
 "use client"
 
 import useSWR from "swr"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 
 type Row = {
   id: string
@@ -10,7 +11,7 @@ type Row = {
   email: string
   phone?: string | null
   coverLetter?: string | null
-  status: string
+  status: "NEW" | "SHORTLISTED" | "INTERVIEWING" | "OFFER" | "HIRED" | "REJECTED"
   createdAt: string
   cvUrl?: string | null
   job?: { title: string; brand: string; store?: { town?: string | null } | null } | null
@@ -18,7 +19,7 @@ type Row = {
 
 const fetcher = async (u: string) => {
   const r = await fetch(u, { credentials: "same-origin", cache: "no-store" })
-  if (!r.ok) throw new Error(`HTTP ${r.status}`)
+  if (!r.ok) throw new Error(`HTTP ${r.status} ${await r.text()}`)
   return r.json()
 }
 
@@ -26,39 +27,79 @@ export default function ApplicationsAdmin() {
   const [status, setStatus] = useState("")
   const [brand, setBrand] = useState("")
   const [q, setQ] = useState("")
-  const query = new URLSearchParams({
-    ...(status && { status }),
-    ...(brand && { brand }),
-    ...(q && { q }),
-  }).toString()
+  const query = new URLSearchParams({ ...(status && { status }), ...(brand && { brand }), ...(q && { q }) }).toString()
 
-  const { data, error, mutate } = useSWR<{ applications: Row[] }>(
+  const { data, error, mutate, isValidating } = useSWR<{ applications: Row[] }>(
     `/api/admin/applications?${query}`,
     fetcher
   )
+
   const apps = data?.applications ?? []
 
-  async function updateStatus(id: string, next: string) {
-    await fetch(`/api/admin/applications/${id}`, {
+  // Hide rejected unless explicitly filtered
+  const rows = useMemo(
+    () => (status !== "REJECTED" ? apps.filter(a => a.status !== "REJECTED") : apps),
+    [apps, status]
+  )
+
+  async function updateStatus(id: string, next: Row["status"]) {
+    if (!data) return
+    const prev = data
+    const optimistic = {
+      applications: data.applications.map(a => (a.id === id ? { ...a, status: next } : a)),
+    }
+
+    // Optimistic UI
+    mutate(optimistic, { revalidate: false })
+
+    // Call API
+    const res = await fetch(`/api/admin/applications/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: next }),
       credentials: "same-origin",
+      body: JSON.stringify({ status: next }),
     })
+
+    if (!res.ok) {
+      // rollback + show error
+      mutate(prev, { revalidate: false })
+      const msg = await res.text().catch(() => "")
+      alert(`Failed to update status: ${res.status} ${msg}`)
+      return
+    }
+
+    // Revalidate to ensure backend state matches
     mutate()
   }
 
-  const filtered = apps.filter(a => {
-    if (status !== "REJECTED" && a.status === "REJECTED") return false
-    return true
-  })
-
-  if (error)
+  function StatusButton({
+    current,
+    next,
+    onClick,
+  }: {
+    current: Row["status"]
+    next: Row["status"]
+    onClick: () => void
+  }) {
+    const active = current === next
+    const base = "px-2 py-1 rounded border text-xs font-medium transition-colors"
+    const idle = "border-slate-300 text-slate-600 hover:bg-slate-100"
+    const color =
+      next === "REJECTED"
+        ? "bg-red-100 text-red-700 border-red-300"
+        : next === "INTERVIEWING"
+        ? "bg-yellow-100 text-yellow-700 border-yellow-300"
+        : "bg-blue-100 text-blue-700 border-blue-300"
     return (
-      <div className="text-red-600 p-4">
-        Failed to load applications: {String(error.message)}
-      </div>
+      <button type="button" onClick={onClick} className={`${base} ${active ? color : idle}`}>
+        {next.charAt(0) + next.slice(1).toLowerCase()}
+      </button>
     )
+  }
+
+  if (error) {
+    return <div className="text-red-600 p-4">Failed to load applications: {String(error.message)}</div>
+  }
 
   return (
     <div>
@@ -91,7 +132,7 @@ export default function ApplicationsAdmin() {
           onChange={e => setQ(e.target.value)}
         />
         <button className="border rounded px-3" onClick={() => mutate()}>
-          Refresh
+          {isValidating ? "Refreshing…" : "Refresh"}
         </button>
       </div>
 
@@ -109,65 +150,42 @@ export default function ApplicationsAdmin() {
             </tr>
           </thead>
           <tbody>
-            {filtered.map(a => (
+            {rows.map(a => (
               <tr key={a.id} className="border-t hover:bg-slate-50">
                 <td className="p-3 align-top">
-                  <div className="font-medium">{a.firstName} {a.lastName}</div>
-                  <div className="text-slate-500">{a.email}{a.phone ? ` · ${a.phone}` : ""}</div>
+                  <div className="font-medium">
+                    {a.firstName} {a.lastName}
+                  </div>
+                  <div className="text-slate-500">
+                    {a.email}
+                    {a.phone ? ` · ${a.phone}` : ""}
+                  </div>
                   {a.cvUrl && (
-                    <a
-                      className="text-primary underline"
-                      href={a.cvUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                    >
+                    <a className="text-primary underline" href={a.cvUrl} target="_blank" rel="noreferrer">
                       View CV
                     </a>
                   )}
                   {a.coverLetter && (
                     <details className="mt-1 text-xs">
-                      <summary className="cursor-pointer text-primary underline">
-                        View Cover Letter
-                      </summary>
-                      <div className="mt-1 whitespace-pre-wrap text-slate-700">
-                        {a.coverLetter}
-                      </div>
+                      <summary className="cursor-pointer text-primary underline">View Cover Letter</summary>
+                      <div className="mt-1 whitespace-pre-wrap text-slate-700">{a.coverLetter}</div>
                     </details>
                   )}
                 </td>
                 <td className="p-3">{a.job?.title || "General Application"}</td>
                 <td className="p-3">{a.job?.brand || "-"}</td>
                 <td className="p-3 font-semibold">{a.status}</td>
-                <td className="p-3">
-                  {new Date(a.createdAt).toLocaleDateString("en-ZA")}
-                </td>
+                <td className="p-3">{new Date(a.createdAt).toLocaleDateString("en-ZA")}</td>
                 <td className="p-3">
                   <div className="flex flex-wrap gap-2">
-                    {["SHORTLISTED", "INTERVIEWING", "REJECTED"].map(btn => {
-                      const color =
-                        btn === "REJECTED"
-                          ? "bg-red-100 text-red-700 border-red-300"
-                          : btn === "INTERVIEWING"
-                          ? "bg-yellow-100 text-yellow-700 border-yellow-300"
-                          : "bg-blue-100 text-blue-700 border-blue-300"
-                      const active = a.status === btn
-                      return (
-                        <button
-                          key={btn}
-                          onClick={() => updateStatus(a.id, btn)}
-                          className={`px-2 py-1 rounded border text-xs font-medium ${
-                            active ? color : "border-slate-300 text-slate-600 hover:bg-slate-100"
-                          }`}
-                        >
-                          {btn.charAt(0) + btn.slice(1).toLowerCase()}
-                        </button>
-                      )
-                    })}
+                    <StatusButton current={a.status} next="SHORTLISTED" onClick={() => updateStatus(a.id, "SHORTLISTED")} />
+                    <StatusButton current={a.status} next="INTERVIEWING" onClick={() => updateStatus(a.id, "INTERVIEWING")} />
+                    <StatusButton current={a.status} next="REJECTED" onClick={() => updateStatus(a.id, "REJECTED")} />
                   </div>
                 </td>
               </tr>
             ))}
-            {filtered.length === 0 && (
+            {rows.length === 0 && (
               <tr>
                 <td className="p-6 text-slate-500" colSpan={6}>
                   No applications found.

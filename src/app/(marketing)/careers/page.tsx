@@ -16,13 +16,30 @@ export default async function CareersPage() {
       <div className="mt-8 grid gap-4">
         {jobs.length === 0 && <p className="text-slate-500">No open roles right now.</p>}
         {jobs.map((j) => (
-          <Link key={j.id} href={`/careers/${j.slug}`} className="rounded-lg border p-4 hover:bg-slate-50">
-            <Link href={`/careers/${j.slug}`} className="text-primary underline">View & Apply</Link>
-            <div className="text-sm text-slate-500">{j.brand} {j.store ? `• ${j.store.town}` : ""}</div>
-            <div className="text-lg font-semibold">{j.title}</div>
-            {j.closingDate && <div className="text-xs text-slate-500">Closes {new Date(j.closingDate).toLocaleDateString()}</div>}
+          <Link
+            key={j.id}
+            href={`/careers/${j.slug}`}
+            className="block rounded-lg border p-4 hover:bg-slate-50 transition-colors cursor-pointer"
+            aria-label={`Open ${j.title}`}
+          >
+            <div className="text-sm text-slate-500">
+              {j.brand} {j.store ? `• ${j.store.town}` : ""}
+            </div>
+
+            <h3 className="text-lg font-semibold">{j.title}</h3>
+
+            {j.closingDate && (
+              <div className="text-xs text-slate-500">
+                Closes {new Date(j.closingDate).toLocaleDateString("en-ZA")}
+              </div>
+            )}
+
+            <div className="mt-3">
+              <span className="text-primary underline">View & Apply</span>
+            </div>
           </Link>
         ))}
+
       </div>
 
       <hr className="my-10" />
